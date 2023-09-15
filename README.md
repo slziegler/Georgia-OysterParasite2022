@@ -1,6 +1,6 @@
 # Georgia-OysterParasite2022
 
-##### GitHub repository containing data and code accompanying the CCFRP Statewide 2017-2022 manuscript (Ziegler et al. in review)
+##### GitHub repository containing data and code accompanying the GA CIG 2022 Oyster parasite manuscript (Ziegler et al. in review)
 
 ## Title: Universally high microparasite prevalence in an ecosystem engineer across a large spatial scale
 
