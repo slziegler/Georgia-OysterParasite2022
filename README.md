@@ -13,18 +13,26 @@
 **Repository contains the following:**
 
 1. Code
-   - R markdown script with all code and analyses included in manuscript (.Rmd)
+   - R markdown script with all code and analyses included in manuscript (2022-GAOysterParasite Models.Rmd)
    
 2. Data
-   - 
+   - CIGintesnityandprev2022.csv
+   - CIGOysterAllCombinedWideFormat.csv
+   - DiseaseoysterMacros.csv
+   - DNRyear&5year.csv
+   - ReefCharacteristics-2023-08-07.csv
    
 3. Figures
-   - Figure 1.png
-   - Figure 2.png
-   - Figure 3.png
-   - Figure 4.png
-   - SI Figure 1.png
-   - SI Figure 2.png
+   - Figure1.pdf
+   - Figure2.pdf
+   - Figure3.pdf
+   - SuppFig1.pdf
+   - SuppFig2.pdf
+   - SuppFig3.pdf
+   - SuppFig4.pdf
+   - SuppFig5.pdf
+   - SuppFig6.pdf
+   - SuppFig7.pdf
 
 4. Tables 
    - Table 1.pdf
