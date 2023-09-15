@@ -1,0 +1,25 @@
+﻿Cluster,Site,Latitude,Longitude,Collection Date,Distance from marsh edge (cm),Quadrat Depth (cm),Rugosity.ds,Rugosity,Rugosity location,Oyster Height 1 (cm),Oyster Height 2 (cm),Oyster Height 3 (cm),DO (mg/L),Salinity (ppt),Temp (°C),Landscape Context,Notes,Data entry
+Romerly Marsh,RM1,31.92759,-81.01943,6/9/22,0,,2.3,0.425,Above,8.2,16.4,17.2,0.42,27.8,28.4,"20-30% slope, muddy","Oyster drill eggs, quadrat deployed 0.9 m from edge, 2 spat sticks deployed",SM
+Romerly Marsh,RM2,31.92879,-80.99755,6/9/22,0,24.5,2.6,0.35,Above,35.4,25.9,26,0.29,27.9,28.4,20% slope,2 spat sticks deployed,SM
+Romerly Marsh,RM3,31.92217,-80.97818,6/9/22,0,16.5,2.2,0.45,Above,20.9,20.2,19.6,0.38,29.3,28.6,"20% slope, muddy, sparser reef with less basal shell, ground H2O leaching ~2m to left",2 spat sticks deployed,SM
+Tybee,TB1,32.02171,-80.94308,6/10/22,0,,3.25,0.1875,,19.5,14.8,17.9,0.37,23.8,27.9,"Continuous reef with lots of dead shell, less mud","Bottom 15% of left corner of quadrat dead, 2 spat sticks",SM
+Tybee,TB2,32.01721,-80.92203,6/10/22,0,,3.3,0.175,,9.4,19,8.2,0.33,25.8,27.9,"Continuous reef, lots of singular shell, freshwater discharge ~5m left",2 spat sticks,SM
+Tybee,TB3,31.98741,-80.91755,6/10/22,25,15,3,0.25,Below,29,26.4,25.1,0.38,27.6,28.1,"Beach ~10m to right, heavily eroded peat bank above, 1/2 foot escarpment, sparse reef at edge of marsh, 3/4 density",2 spat sticks,SM
+Camden,CM1,30.86197,-81.49571,6/12/22,28,16,3.4,0.15,Below,2.2,15.5,16.8,0.27,32.6,30.2,"Near intercoastal channel on corner of creek, reef patchy, Spartina finger down next to quadrat, reef cemented in with deep rooted shells",,SM
+Camden,CM2,30.85055,-81.47381,6/12/22,37,9,3.14,0.215,Below,14.2,10.8,25,0.28,32.2,29.4,"Sparse oysters, rooted deep into mud, oyster reef stops ~100m up creek",,SM
+Camden,CM3,30.85826,-81.54105,6/12/22,13,13,3.34,0.165,Below,18,28.3,35,0.28,32.2,30,"Lots of mud flat on both sides, healthy looking reef","15% of quadrat is mud, mostly at bottom half",SM
+Glynn-Jointer Creek,JC1,31.08752,-81.48679,6/13/22,21,6,2.44,0.39,Right,34.5,26.5,23.6,0.3,30.1,29.2,"Marsh pond 3m behind + to right, outflow next to reef",,SM
+Glynn-Jointer Creek,JC2,31.0836,-81.50299,6/13/22,0,13.5,2.71,0.3225,Below,28.2,26.1,24.3,0.44,29.2,30.3,"Reef extends lower than site 1, tidal area small draining marsh 25m right",,SM
+Glynn-Jointer Creek,JC3,31.05379,-81.46747,6/13/22,0,19,2.9,0.275,Above,19.4,13.5,20.8,0.3,29.9,29.8,"Spartina peninsula 10m wide w/ mud patches on either side, sponge on lower reef, lots of dead shell, reef on elevated mud, whip coral at waterline",Layer of dead shell at base of quadrat,SM
+McKay River,MR1,31.21492,-81.42349,6/13/22,0,8,3.6,0.1,Below,15.2,14,10.9,0.31,18,30.6,Mud flats on either side of reef,"Quadrat diagonal from spartina, 40% mud cover in plot",SM
+McKay River,MR2,31.22319,-81.44549,6/13/22,0,9,3.5,0.125,Below,10,19.5,13.9,0.43,16.4,29.8,"Highly eroded bank, one off reef next to large open mud flat, groundwater seepage to left","Quadrat diagonal from spartina and parallel to water, 30% mud in plot",SM
+McKay River,MR3,31.20721,-81.44522,6/13/22,35.6,9,2.87,0.2825,Above,26.9,20.9,21.5,0.22,17.8,30.9,"10 bare muck -> reef patches, mud flat to left with creek drainage",,SM
+McIntosh,MI1,31.47537,-81.3277,6/15/22,0,17.5,2.8,0.3,Above,21.7,39,35.4,0.2,25.5,30.2,"Mud puddle immediately adjacent, creek flow to left, very cemented reef",,SM
+McIntosh,MI2,31.49091,-81.33453,6/15/22,0,20.6,3,0.25,Above,20.5,16,22.5,0.19,25.9,31.1,,Oysters loose,SM
+McIntosh,MI3,31.53877,-81.32639,6/15/22,25,16,3.4,0.15,Above,27.5,11.5,11,0.38,26.3,32.3,Scarped marsh,Moderately cemented oysters,SM
+Liberty-Sunbury,SB1,31.73083,-81.22192,6/16/22,30,14,3,0.25,Left,14.5,19,25,0.37,29,31.4,"Large base of dead shell, strong on-reef wind, out on point next to seaward mud flat",Lots of crabs (unknown species) in dead shell layer,SM
+Liberty-Sunbury,SB2,31.74574,-81.25545,6/16/22,0,19,3.25,0.1875,Above/right,36.8,24.2,22.4,0.35,28.5,31.1,"Mud+eroding bank to direct left of reef, beach starts ~40m to right, mud channel to left","Base of dead shell, reef very cemented",SM
+Liberty-Sunbury,SB3,31.75607,-81.27174,6/16/22,88,12.5,3.22,0.195,Below/right,21.5,20.5,20.6,0.36,28.6,31.1,"Mud flat to right at opening of creek, low slope at top of reef, sparse and scraggly, creek inlet ~15m shoreward, fiddlers to right, detrital matter from Spartina in reef",,SM
+Little Ogeechee,LO1,31.89519,-81.14262,6/20/22,0,13.5,3,0.25,Above,21,14.6,18.9,0.49,22.3,29.1,"Good reef high up, lower reef dead shell, very muddy, at point of marsh",Cemented in,SM
+Little Ogeechee,LO2,31.89197,-81.11729,6/20/22,10,5.2,3.3,0.175,Right,18.5,8,,0.16,22.6,29,"Patchy reefs along shoreline ~50m apart, mud flat to both sides with tidal creek behind","Shallow, no dead shell, base of plot is mostly mud",SM
+Little Ogeechee,LO3,31.90686,-81.10446,6/20/22,100,27.5,2.3,0.425,Right,23,18.5,18.5,0.17,24.2,29.6,Oyster clusters on reef are very tall,"5-10% mud, plot set down at very top of reef, tons of crabs, cemented in",SM

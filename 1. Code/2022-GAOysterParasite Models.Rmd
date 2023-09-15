@@ -1,0 +1,981 @@
+---
+title: "CIG 2022 Parasite Analysis"
+author: "Shelby Ziegler"
+date: "2023-08-02"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, error=FALSE, fig.width=14, fig.height=10, out.width = "75%")
+
+rm(list = ls());graphics.off()
+library(tidyverse) # For data manipulation and summarization
+library(plotrix) #To use standard error calculation
+library(cowplot) #For grouping plots
+library(scales) #For editing axis scales
+library(vegan) #For multivariate analyses
+library(rstatix) #For running ANCOVA
+library(ggpmisc) #adding equation and r2 to figures
+library(viridis)
+library(ggpubr)
+library(visreg)
+
+alpha=0.05
+formula<-y~x
+theme_set(theme_classic(base_size=16))
+```
+
+Read in dermo and msx prevalence and intensity data 
+
+```{r}
+dat<-read.csv("CIGintensityandprev2022.csv")
+
+
+#calculate co-infection rates
+  
+dat$coin<-dat$Dermo.prev+dat$MSX.prev
+dat$coin<-ifelse(dat$coin>=2, 1, 0)
+
+dat$noin<-dat$Dermo.prev+dat$MSX.prev
+dat$noin<-ifelse(dat$noin==0, 1, 0)
+
+dat$MSX.prev[is.na(dat$MSX.prev)] <- 0
+dat$coin[is.na(dat$coin)] <- 0
+dat$noin[is.na(dat$noin)] <- 0
+
+levels(dat$Cluster)[levels(dat$Cluster)=="McKay River"] <- "Mackay River"
+dat$Cluster<-factor(dat$Cluster, levels=c("Tybee", "Romerly Marsh", "Little Ogeechee", "Liberty-Sunbury", "McIntosh", "Mackay River", "Glynn-Jointer Creek", "Camden"))
+dat$Site<-factor(dat$Site, levels=c("TB1", "TB2", "TB3", "RM1","RM2", "RM3", "LO1", "LO2", "LO3" ,"SB1", "SB2", "SB3", "MI1", "MI2", "MI3", "MR1","MR2", "MR3", "JC1", "JC2", "JC3", "CM1", "CM2", "CM3"))
+```
+
+Calculate and plot proportion of prevalence and coinfection. 
+
+```{r}
+#Calculate prevalence for all 4 variables.
+prevprop<-dat%>%
+  group_by(Cluster, Site)%>%
+  summarise(dprop=(sum(Dermo.prev)/n()), mprop=(sum(MSX.prev)/n()), coprop=(sum(coin)/n()), noprop=(sum(noin)/n()))
+
+prev1<-prevprop%>%
+  group_by()%>%
+  summarize(meanpm=mean(dprop), sdpm=sd(dprop),meanhn=mean(mprop), sdhm=sd(mprop), meanco=mean(coprop), sdco=sd(coprop), meanno=mean(noprop), sdno=sd(1-noprop))
+
+cv<-prevprop%>%
+  dplyr::select(dprop, mprop, coprop, noprop)
+cv$yesprop<-1-cv$noprop  
+
+
+sd(prevprop$dprop) / mean(prevprop$dprop)
+sd(prevprop$mprop) / mean(prevprop$mprop)
+sd(prevprop$coprop) / mean(prevprop$coprop) 
+sd(cv$yesprop) / mean(cv$yesprop)
+
+1-prev1$meanno
+prev1$seno
+#Plot dermo prevalence
+dermoprevp<-ggplot(prevprop, aes(y=dprop, x=Cluster, fill=Cluster))+
+# geom_segment(aes(xend = Cluster), yend = 0, colour = "grey50") +
+  geom_point(size = 3, shape=21, color="black") +
+  scale_fill_viridis_d() +
+  theme(panel.border = element_rect(colour = "black", fill=NA,  linewidth=1)) +
+  theme(
+    panel.grid.major.y = element_blank(),   # No horizontal grid lines
+    legend.position = "none",           # Put legend inside plot area
+    legend.justification = c(1, 0.5))+
+   theme(axis.text.x=element_text(angle=45,hjust=1)) +
+   ylim(0,1)+
+  geom_hline(yintercept=0.66, linetype="dashed")+
+  scale_x_discrete(limits=rev)+
+  labs(y="P. marinus prevalence", x="")+
+  theme(axis.text.x=element_blank())
+
+#plot MSX prevalence
+msxprevp<-ggplot(prevprop, aes(y=mprop, x=Cluster, fill=Cluster))+
+# geom_segment(aes(xend = Cluster), yend = 0, colour = "grey50") +
+  geom_point(size = 3, shape=21, color="black") +
+  scale_fill_viridis_d() +
+  theme(panel.border = element_rect(colour = "black", fill=NA,  linewidth=1)) +
+  theme(legend.position = "none",           
+    panel.grid.major.y = element_blank())+  # No horizontal grid lines
+   # legend.position = c(0.98, 0.25),           # Put legend inside plot area
+   # legend.justification = c(1, 0.5))+
+  labs(y="H. nelsoni prevalence", x="")+
+  theme(axis.text.x=element_text(angle=45,hjust=1)) +
+  scale_x_discrete(limits=rev)+
+   geom_hline(yintercept=0.77, linetype="dashed")+
+ ylim(0,1)+
+  theme(axis.text.x=element_blank())
+
+#Plot co-infection
+coprev<-ggplot(prevprop, aes(y=coprop, x=Cluster, fill=Cluster))+
+ #geom_segment(aes(xend = Cluster), yend = 0, colour = "grey50") +
+  geom_point(size = 3, shape=21, color="black") +
+  scale_fill_viridis_d() +
+  theme(panel.border = element_rect(colour = "black", fill=NA,  linewidth=1)) +
+  theme(legend.position = "none",           
+    panel.grid.major.y = element_blank())+  # No horizontal grid lines
+   # legend.position = c(0.98, 0.25),           # Put legend inside plot area
+   # legend.justification = c(1, 0.5))+
+  labs(y="Proportion of co-infection", x="")+
+  theme(axis.text.x=element_text(angle=45,hjust=1)) +
+  scale_x_discrete(limits=rev)+
+   ylim(0,1)+
+  geom_hline(yintercept=0.52, linetype="dashed")
+
+#Plot at least 1 infection
+noprev<-ggplot(prevprop, aes(y=1-noprop, x=Cluster, fill=Cluster))+
+ #geom_segment(aes(xend = Cluster), yend = 0, colour = "grey50") +
+  geom_point(size = 3, shape=21, color="black") +
+  scale_fill_viridis_d() +
+  theme(panel.border = element_rect(colour = "black", fill=NA,  linewidth=1)) +
+  theme(legend.position = "none",           
+    panel.grid.major.y = element_blank())+  # No horizontal grid lines
+   # legend.position = c(0.98, 0.25),           # Put legend inside plot area
+   # legend.justification = c(1, 0.5))+
+  labs(y="Proportion oysters with one infection", x="")+
+  theme(axis.text.x=element_text(angle=45,hjust=1)) +
+  scale_x_discrete(limits=rev)+
+   ylim(0,1)+
+  geom_hline(yintercept=0.91, linetype="dashed")
+  
+
+prevprop$all<-1-prevprop$noprop
+
+#combine plots 
+
+P1<-cowplot::plot_grid(dermoprevp, msxprevp, coprev, ncol=1, rel_heights = c(0.5,0.5,0.75))
+cowplot::plot_grid(noprev, P1, ncol=2)
+```
+
+Calculate average intensity for Dermo and MSX by site and plot 
+
+```{r}
+datD<-filter(dat, Dermo.g>0)
+datD1<-datD%>%
+  group_by(Cluster, Site)%>%
+  summarise(Dintensity=mean(Dermo.g), se.in=std.error(Dermo.g))
+
+datD2<-datD1%>%
+  group_by()%>%
+  summarise(Din=mean(Dintensity), se.in=std.error(Dintensity))
+
+datD1$perc<-datD1$Dintensity/datD2$Din
+
+log(datD2$Din)
+log(datD2$se.in)
+##issues with jitter 
+dip<-ggplot(datD1, aes(x=Cluster, y=log(Dintensity), fill=Cluster))+
+#  geom_errorbar(aes(ymax=log(Dintensity)+log(se.in),
+ #   ymin=log(Dintensity)-log(se.in)), width=0.1,     position=position_dodge(0.5))+
+  geom_point(shape=21,size=3, position=position_dodge(0.5))+
+  theme(axis.text.x=element_text(angle=45,hjust=1)) +
+  scale_x_discrete(limits=rev)+
+   theme(panel.border = element_rect(colour = "black", fill=NA,  linewidth=1)) +
+  theme(legend.position = "none",           
+    panel.grid.major.y = element_blank())+ 
+  scale_fill_viridis_d()+
+  labs(x="", y="Log(P. marinus DNA/g)")+
+  ylim(0,15)+
+  geom_hline(yintercept=log(15823.68), linetype="dashed")
+
+
+datM<-filter(dat, MSX.g>0)
+
+datM1<-datM%>%
+  group_by(Cluster, Site)%>%
+  summarise(Mintensity=mean(MSX.g), se.in=std.error(MSX.g))
+
+datM2<-datM1%>%
+  group_by()%>%
+  summarise(Min=mean(Mintensity), se.in=std.error(Mintensity))
+
+datM1$perc<-datM1$Mintensity/datM2$Min
+
+log(datM2$Min)
+log(datM2$se.in)
+
+mip<-ggplot(datM1, aes(x=Cluster, y=log(Mintensity), fill=Cluster))+
+ #  geom_errorbar(aes(ymax=log(Mintensity)+log(se.in),
+  #  ymin=log(Mintensity)-log(se.in)), width=0.1, position=position_dodge(width = 0.5))+
+   geom_point(shape=21,size=3, position=position_dodge(width = 0.5))+
+   theme(panel.border = element_rect(colour = "black", fill=NA,  linewidth=1)) +
+  theme(legend.position = "none",           
+    panel.grid.major.y = element_blank())+ 
+  theme(axis.text.x=element_text(angle=45,hjust=1)) +
+  scale_x_discrete(limits=rev)+
+  scale_fill_viridis_d()+
+  labs(x="", y="Log(H. nelsoni DNA/g)")+
+  ylim(0,35)+
+  geom_hline(yintercept= 28.76366, linetype="dashed")
+
+
+cowplot::plot_grid(dip, mip)
+```
+
+Macroparasite prevalence  
+
+```{r}
+macro<-read.csv("Data/DiseaseoysterMacros.csv")
+
+macro$worm<-ifelse(macro$blister.number>=1, 1, 0)
+
+#levels(macro$Cluster)[levels(macro$Cluster)=="McKay River"] <- "Mackay River"
+
+#dat$Cluster<-factor(dat$Cluster, levels=c("Tybee", "Romerly Marsh", "Little Ogeechee", "Liberty-Sunbury", "McIntosh", "Mackay River", "Glynn-Jointer Creek", "Camden"))
+datmac<-left_join(dat, macro, by="Oyster.ID")
+
+#blister worm by cluster
+worm1<-glm(worm~Cluster,family=binomial(link="logit"), data=datmac)
+summary(worm1)
+drop1(worm1, .~., test = "Chisq")
+#pea crab prev by cluster
+pc1<-glm(pea.crab~Cluster,family=binomial(link="logit"), data=datmac)
+summary(pc1)
+drop1(pc1, .~., test = "Chisq")
+
+#Calculate prevalence for pea crabs and blister worm
+prevmac<-datmac%>%
+  group_by(Cluster, Site)%>%
+  summarise(wprop=(sum(worm)/n()), pcprop=(sum(pea.crab)/n()), sprop=(sum(sponge.perc)/n()))
+
+prevmac1<-datmac%>%
+  summarise(wprop=(sum(worm)/n()), pcprop=(sum(pea.crab)/n()), sprop=(sum(sponge.perc)/n()))
+
+#Plot worm prevalence
+wprevp<-ggplot(prevmac, aes(y=wprop, x=Cluster, fill=Cluster))+
+ #geom_segment(aes(xend = Cluster), yend = 0, colour = "grey50") +
+  geom_point(size = 3, shape=21, color="black") +
+  scale_fill_viridis_d() +
+  theme(panel.border = element_rect(colour = "black", fill=NA,  linewidth=1)) +
+  theme(
+    panel.grid.major.y = element_blank(),   # No horizontal grid lines
+    legend.position = "none",           # Put legend inside plot area
+    legend.justification = c(1, 0.5))+
+   theme(axis.text.x=element_text(angle=45,hjust=1)) +
+   ylim(0,1)+
+  #geom_hline(yintercept=0.5, linetype="dashed")+
+  scale_x_discrete(limits=rev)+
+  labs(y="Blister worm prevalence", x="")
+
+#Plot pea crab prevalence
+pcprevp<-ggplot(prevmac, aes(y=pcprop, x=Cluster, fill=Cluster))+
+ #geom_segment(aes(xend = Cluster), yend = 0, colour = "grey50") +
+  geom_point(size = 3, shape=21, color="black") +
+  scale_fill_viridis_d() +
+  theme(panel.border = element_rect(colour = "black", fill=NA,  linewidth=1)) +
+  theme(
+    panel.grid.major.y = element_blank(),   # No horizontal grid lines
+    legend.position = "none",           # Put legend inside plot area
+    legend.justification = c(1, 0.5))+
+   theme(axis.text.x=element_text(angle=45,hjust=1)) +
+   ylim(0,1)+
+  #geom_hline(yintercept=0.5, linetype="dashed")+
+  scale_x_discrete(limits=rev)+
+  labs(y="Pea crab prevalence", x="")
+
+#Plot pea crab prevalence
+bsprevp<-ggplot(prevmac, aes(y=sprop, x=Cluster, fill=Cluster))+
+ #geom_segment(aes(xend = Cluster), yend = 0, colour = "grey50") +
+  geom_point(size = 3, shape=21, color="black") +
+  scale_fill_viridis_d() +
+  theme(panel.border = element_rect(colour = "black", fill=NA,  linewidth=1)) +
+  theme(
+    panel.grid.major.y = element_blank(),   # No horizontal grid lines
+    legend.position = "none",           # Put legend inside plot area
+    legend.justification = c(1, 0.5))+
+   theme(axis.text.x=element_text(angle=45,hjust=1)) +
+   ylim(0,1)+
+  #geom_hline(yintercept=0.5, linetype="dashed")+
+  scale_x_discrete(limits=rev)+
+  labs(y="Boring sponge prevalence", x="")
+
+cowplot::plot_grid(wprevp, pcprevp, bsprevp, ncol=3)
+
+
+w1<-glm(worm~Site,family=binomial(link="logit"), data=datmac)
+summary(w1)
+drop1(w1, .~., test = "F")
+r.squaredGLMM(w1)
+with(summary(w1), 1 - deviance/null.deviance)
+
+pc1<-glm(pea.crab~Site,family=binomial(link="logit"), data=datmac)
+summary(pc1)
+drop1(pc1, .~., test = "Chisq")
+with(summary(pc1), 1 - deviance/null.deviance)
+```
+
+Add in environmental data 
+
+```{r}
+env<-read.csv('Data/ReefCharacteristics-2023-08-07.csv') 
+
+sd(env$Salinity..ppt.) / mean(env$Salinity..ppt.)
+sd(env$Rugosity) / mean(env$Rugosity)
+
+env<-env%>%
+  dplyr::select(Site, Latitude, Rugosity, Salinity..ppt., Temp...C.)
+
+
+temp<-env%>%
+  group_by()%>%
+  summarize(meant=mean(Temp...C.), sdt=sd(Temp...C.))
+sd(env$Temp...C.) / mean(env$Temp...C.)
+sd(env$Salinity..ppt.) / mean(env$Salinity..ppt.)
+sd(env$Salinity..ppt.) / mean(env$Salinity..ppt.)
+
+datlat<-left_join(datmac, env, by="Site")
+
+
+oy5<-read.csv("Data/CIGOysterAllCombinedWideFormat.csv")
+oy5$mudcrab.density<-oy5$large.mudcrab.density+oy5$Small.mudcrab.density
+oy5<-oy5%>%
+  dplyr::select(Site, Total.oyster.density, Marsh.water.ratio, Nearest.Inlet,Nearest.road,Neartest.Armored.Shoreline, Petro.density, mudcrab.density)
+
+datlat1<-left_join(datlat, oy5, by="Site")
+###Physical data 
+enviro<-read.csv("Data/DNRyear&5year.csv")
+enviro<-enviro[,-1]
+
+
+#select out spring variables and the 5 year temp and salinity means and vars.
+datenv1<-enviro%>%dplyr::select(Site, fullT.mean.x,fullS.mean, fullT.var, fullS.var, Spring.DO.mg.L_mean, Spring.DO.mg.L_var, Spring.pH_mean, Spring.pH_var, Spring.Temp..C_mean, Spring.Temp..C_var, Spring.Salinity.ppt_mean, Spring.Salinity.ppt_var)
+
+
+fulldat<-left_join(datlat1, datenv1, by="Site")
+fulldat<-fulldat[,-1]
+
+fulldat$Dermo.g[is.na(fulldat$Dermo.g)] <- 0
+fulldat$MSX.g[is.na(fulldat$MSX.g)] <- 0
+
+envcor<-fulldat%>%dplyr::select(Salinity..ppt., Temp...C., fullT.mean.x,fullS.mean, fullT.var, fullS.var, Spring.DO.mg.L_mean, Spring.DO.mg.L_var, Spring.pH_mean, Spring.pH_var, Spring.Temp..C_mean, Spring.Temp..C_var, Spring.Salinity.ppt_mean, Spring.Salinity.ppt_var)
+
+envcor1<-cor(envcor)
+corrplot::corrplot(envcor1, method ='number',type = "upper",
+         tl.col = "black", tl.srt = 45)
+
+```
+
+
+```{r}
+library(lmerTest)
+library(MuMIn)
+library(lme4)
+
+
+fulldat$Cluster<-as.factor(fulldat$Cluster)
+fulldat$Site<-as.factor(fulldat$Site)
+
+fulldatD<-fulldat%>%
+  filter(Dermo.g>0)
+
+fulldatM<-fulldat%>%
+  filter(MSX.g>0)
+#Full phys models do not converge
+#run full Dermo.prev minus high correlations
+physD1<-glmer(Dermo.prev~Length+Salinity..ppt.+scale(Temp...C.)+scale(fullT.var)+scale(fullS.var)+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+
+MuMIn::dredge(physD1)
+
+ #Best fit Dermo.prev models include - oyster length, full temp mean, Spring pH,and spring salinity 
+physD2<-glmer(Dermo.prev~Length+Salinity..ppt.+scale(Temp...C.)+scale(fullS.var)+(1|Site), family=binomial(link="logit"), data=fulldat)
+r.squaredGLMM(physD2)
+
+
+
+#run full MSX.prev minus high correlations
+physM1<-glmer(MSX.prev~Length+Salinity..ppt.+scale(Temp...C.)+scale(fullT.var)+scale(fullS.var)+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+summary(physM1)
+MuMIn::dredge(physM1)
+
+
+
+#Best fit model includes length. 
+physM2<-glmer(MSX.prev~Length+Salinity..ppt.+scale(Temp...C.)+(1|Site), family=binomial(link="logit"), data=fulldat)
+summary(physM2)
+r.squaredGLMM(physM2)
+
+##Coinfection. - best fit is just length
+physC1<-glmer(coin~Length+scale(Salinity..ppt.)+scale(Temp...C.)+scale(fullT.var)+scale(fullS.var)+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+summary(physC1)
+MuMIn::dredge(physC1)
+
+physC2<-glmer(coin~Length+scale(Salinity..ppt.)+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+summary(physC2)
+r.squaredGLMM(physC2)
+
+#run full Dermo.in minus high correlations
+physDI1<-lmer(log(Dermo.g)~Length+Salinity..ppt.+ Temp...C.+fullT.var+fullS.var+(1|Site), REML=F, data=fulldatD, na.action=na.fail)
+
+MuMIn::dredge(physDI1) #Temp, Salinity
+
+#run full MSX.in minus high correlations
+physMI1<-lmer(log(MSX.g)~Length+Salinity..ppt.+ Temp...C.+fullT.var+fullS.var+(1|Site), REML=F,  data=fulldatM, na.action=na.fail)
+
+MuMIn::dredge(physMI1) # Length. sal, temp
+
+
+##worm 
+physW1<-glmer(worm~Length+Salinity..ppt.+ scale(Temp...C.)+scale(fullT.var)+scale(fullS.var)+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+summary(physW1)
+MuMIn::dredge(physW1)
+
+physW2<-glmer(worm~Length+Salinity..ppt.+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+summary(physW2)
+r.squaredGLMM(physW2)
+```
+
+Biological Data
+
+```{r}
+rfdat<-fulldat%>%select(Rugosity, Total.oyster.density, Petro.density, mudcrab.density)
+
+sd(rfdat$Total.oyster.density) /mean(rfdat$Total.oyster.density)
+sd(rfdat$Petro.density) /mean(rfdat$Petro.density)
+sd(rfdat$mudcrab.density) /mean(rfdat$mudcrab.density)
+
+corrplot::corrplot(cor(rfdat), method ='number',type = "upper", tl.col = "black", tl.srt = 45) 
+#no correlations >0.7
+
+#Dermo prev
+bioD1<-glmer(Dermo.prev~Length+scale(Rugosity)+scale(Total.oyster.density)+scale(Petro.density)+scale(mudcrab.density)+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+
+MuMIn::dredge(bioD1) #Mudcrab and petro
+
+#MSX prev model  - dermo prev and length + rugosity
+bioM1<-glmer(MSX.prev~Length+scale(Rugosity)+scale(Total.oyster.density)+scale(Petro.density)+scale(mudcrab.density)+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+
+MuMIn::dredge(bioM1)
+
+#Coinfection  - Length, mud crab den, petro den.
+bioC1<-glmer(coin~Length+Rugosity+Total.oyster.density+Petro.density+mudcrab.density+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+
+MuMIn::dredge(bioC1)
+
+
+#run full Dermo.in minus high correlations
+bioDI1<-lmer(log(Dermo.g)~Length+scale(Rugosity)+scale(Total.oyster.density)+scale(Petro.density)+scale(mudcrab.density)+(1|Site), REML=F, data=fulldatD, na.action=na.fail)
+
+MuMIn::dredge(bioDI1) #Total oyster density and  petro density
+
+#run full MSX.in minus high correlations
+bioMI1<-lmer(log(MSX.g)~Length+scale(Rugosity)+scale(Total.oyster.density)+scale(Petro.density)+scale(mudcrab.density)+(1|Site), REML=F,  data=fulldatM, na.action=na.fail)
+
+MuMIn::dredge(bioMI1) # Length + rugsoity + total oystser density / everything
+
+#Worm prev model  -  length + rugosity
+bioW1<-glmer(worm~Length+scale(Rugosity)+scale(Total.oyster.density)+scale(Petro.density)+scale(mudcrab.density)+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+summary(bioW1)
+MuMIn::dredge(bioW1)
+
+```
+
+Landscape data 
+
+```{r}
+landdat<-fulldat%>%select(Marsh.water.ratio, Nearest.Inlet, Nearest.road, Neartest.Armored.Shoreline)
+
+sd(landdat$Marsh.water.ratio) /mean(landdat$Marsh.water.ratio)
+sd(landdat$Nearest.Inlet) /mean(landdat$Nearest.Inlet)
+
+corrplot::corrplot(cor(landdat), method="number") #need to remove nearest armored shoreline (road, shoreline 0.81)
+
+#run full Dermo.prev minus high correlations
+landD1<-glmer(Dermo.prev~Length+Marsh.water.ratio+Nearest.Inlet+Nearest.road+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+
+MuMIn::dredge(landD1) # Length, marsh:water ratio
+
+landM1<-glmer(MSX.prev~Length+Marsh.water.ratio+Nearest.Inlet+Nearest.road+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+
+MuMIn::dredge(landM1) #Length, marsh:water
+
+#Coinfection
+landC1<-glmer(coin~Length+Marsh.water.ratio+Nearest.Inlet+Nearest.road+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+
+MuMIn::dredge(landC1) #Length, marsh:water
+
+
+#run full Dermo.in minus high correlations
+landDI1<-lmer(log(Dermo.g)~Length+Marsh.water.ratio+Nearest.Inlet+Nearest.road+(1|Site), REML=F, data=fulldatD, na.action=na.fail)
+
+MuMIn::dredge(landDI1) #marsh:water. nearest inlet
+
+#run full MSX.in minus high correlations
+landMI1<-lmer(log(MSX.g)~Length+Marsh.water.ratio+Nearest.Inlet+Nearest.road+(1|Site), REML=F,  data=fulldatM, na.action=na.fail)
+
+MuMIn::dredge(landMI1) #Length + nearest inlet
+
+#Worm
+landW1<-glmer(worm~Length+Marsh.water.ratio+Nearest.Inlet+Nearest.road+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+
+MuMIn::dredge(landW1) #length nearest inlet
+
+```
+
+
+Full models
+
+```{r}
+
+###Rerun correlation matrix! 
+cormat<-dplyr::select(fulldat, Length, Salinity..ppt., Temp...C., Total.oyster.density, Petro.density, mudcrab.density, Marsh.water.ratio)
+
+corrplot::corrplot(cor(cormat), method="number", "upper")
+#Best fit Dermo.prev models include -
+fullD<-glmer(Dermo.prev~Length+scale(Temp...C.)+scale(Petro.density)+scale(mudcrab.density)+scale(Marsh.water.ratio)+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+summary(fullD)
+r.squaredGLMM(fullD)
+
+dredge(fullD,"sd", extra = c("r.squaredGLMM", F = function(x)
+summary(x)$fstatistic[[1]])) # marsh:water, length, mud crab + temp 
+#Does not converge
+
+fullD1<-glmer(Dermo.prev~Length+scale(Temp...C.)+scale(mudcrab.density)+scale(Marsh.water.ratio)+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+
+fullD2<-glmer(Dermo.prev~Length+scale(mudcrab.density)+scale(Marsh.water.ratio)+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+summary(fullD2)
+
+fullD3<-glmer(Dermo.prev~Length+scale(Marsh.water.ratio)+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+summary(fullD3)
+
+
+fullD4<-glmer(Dermo.prev~Length+scale(Temp...C.)+scale(Marsh.water.ratio)+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+summary(fullD4)
+
+fullD5<-glmer(Dermo.prev~Length+scale(Temp...C.)+scale(Petro.density)+scale(mudcrab.density)+scale(Marsh.water.ratio)+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+summary(fullD5)
+
+
+fullD6<-glmer(Dermo.prev~Length+scale(Petro.density)+scale(mudcrab.density)+scale(Marsh.water.ratio)+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+summary(fullD7)
+
+
+fullD7<-glmer(Dermo.prev~Length+scale(Petro.density)+scale(Marsh.water.ratio)+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+summary(fullD7)
+
+fullD8<-glmer(Dermo.prev~Length+scale(Petro.density)+scale(Temp...C.)+scale(Marsh.water.ratio)+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+summary(fullD8)
+
+par(mfrow = c(2, 2))
+visreg(fullD1, scale="response", rug=2, points=list(cex=1.4, lwd=0.1, col="black", pch=21), partial=T, ylab="P(P. marinus presence)")
+par(mfrow = c(1, 1))
+
+
+dp1<-ggplot(fulldat, aes(x=Length, y=Dermo.prev, color=Cluster))+
+  geom_point()+
+  scale_color_viridis_d() +
+   geom_smooth(
+    method="glm",
+    method.args=list(family="binomial"), color="black", se=F)+
+  xlab("Oyster height (mm)")+ylab("Dermo presence")+
+  theme(panel.border = element_rect(colour = "black", fill=NA,  linewidth=1)) +
+  theme(legend.position = "none")
+
+dp2<-ggplot(fulldat, aes(x=Temp...C., y=Dermo.prev, color=Cluster))+
+  geom_point()+
+  scale_color_viridis_d() +
+   geom_smooth(
+    method="glm",
+    method.args=list(family="binomial"), color="black", se=F)+
+  xlab("Temperature (C)")+ylab("")+
+  theme(panel.border = element_rect(colour = "black", fill=NA,  linewidth=1))
+
+dp3<-ggplot(fulldat, aes(x=mudcrab.density, y=Dermo.prev, color=Cluster))+
+  geom_point()+
+  scale_color_viridis_d() +
+   geom_smooth(
+    method="glm",
+    method.args=list(family="binomial"), color="black", se=F)+
+  xlab("Mud crab density")+ylab("Dermo presence")+
+  theme(panel.border = element_rect(colour = "black", fill=NA,  linewidth=1))+
+  theme(legend.position = "none")
+
+dp4<-ggplot(fulldat, aes(x=Marsh.water.ratio, y=Dermo.prev, color=Cluster))+
+  geom_point()+
+  scale_color_viridis_d() +
+   geom_smooth(
+    method="glm",
+    method.args=list(family="binomial"), color="black", se=F)+
+  xlab("Marsh:open water")+ylab("")+
+  theme(panel.border = element_rect(colour = "black", fill=NA,  linewidth=1))
+
+cowplot::plot_grid(dp1, dp2, dp3, dp4, ncol=2, rel_widths = c(0.55, 0.75, 0.55, 0.75))
+#run full MSX.prev minus high correlations
+
+fullM<-glmer(MSX.prev~Length+scale(Salinity..ppt.)+scale(Temp...C.)+scale(Marsh.water.ratio)+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+summary(fullM)
+MuMIn::dredge(fullM,"sd", extra = c("r.squaredGLMM", F = function(x)
+summary(x)$fstatistic[[1]])) ##Marsh water , salinity, temp, length
+r.squaredGLMM(fullM)
+
+fullM1<-glmer(MSX.prev~Length+scale(Salinity..ppt.)+scale(Temp...C.)+scale(Marsh.water.ratio)+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+r.squaredGLMM(fullM1)
+summary(fullM1)
+
+fullM2<-glmer(MSX.prev~Length+scale(Temp...C.)+scale(Marsh.water.ratio)+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+summary(fullM2)
+
+fullM3<-glmer(MSX.prev~Length+scale(Salinity..ppt.)+scale(Temp...C.)+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+summary(fullM3)
+
+fullM4<-glmer(MSX.prev~Length+scale(Salinity..ppt.)+scale(Marsh.water.ratio)+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+summary(fullM4)
+
+fullM5<-glmer(MSX.prev~Length+scale(Temp...C.)+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+summary(fullM5)
+
+fullM6<-glmer(MSX.prev~Length+scale(Marsh.water.ratio)+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+summary(fullM6)
+
+fullM7<-glmer(MSX.prev~Length+scale(Salinity..ppt.)+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+summary(fullM7)
+
+fullM8<-glmer(MSX.prev~Length+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+summary(fullM8)
+
+par(mfrow = c(2, 2))
+visreg(fullM1, scale="response", rug=2, points=list(cex=1.4, lwd=0.1, col="black", pch=21), partial=T, ylab="P(H. nelsoni presence)")
+par(mfrow = c(1, 1))
+
+
+mp1<-ggplot(fulldat, aes(x=Length, y=MSX.prev, color=Cluster))+
+  geom_point()+
+  scale_color_viridis_d() +
+   geom_smooth(
+    method="glm",
+    method.args=list(family="binomial"), color="black", se=F)+
+  xlab("Oyster height (mm)")+ylab("MSX presence")+
+  theme(panel.border = element_rect(colour = "black", fill=NA,  linewidth=1)) +
+  theme(legend.position = "none")
+
+mp2<-ggplot(fulldat, aes(x=Temp...C., y=MSX.prev, color=Cluster))+
+  geom_point()+
+  scale_color_viridis_d() +
+   geom_smooth(
+    method="glm",
+    method.args=list(family="binomial"), color="black", se=F)+
+  xlab("Temperature (C)")+ylab("")+
+  theme(panel.border = element_rect(colour = "black", fill=NA,  linewidth=1))
+
+mp3<-ggplot(fulldat, aes(x=Salinity..ppt., y=MSX.prev, color=Cluster))+
+  geom_point()+
+  scale_color_viridis_d() +
+   geom_smooth(
+    method="glm",
+    method.args=list(family="binomial"), color="black", se=F)+
+  xlab("Salinity")+ylab("MSX presence")+
+  theme(panel.border = element_rect(colour = "black", fill=NA,  linewidth=1))+
+  theme(legend.position = "none")
+
+mp4<-ggplot(fulldat, aes(x=Marsh.water.ratio, y=MSX.prev, color=Cluster))+
+  geom_point()+
+  scale_color_viridis_d() +
+   geom_smooth(
+    method="glm",
+    method.args=list(family="binomial"), color="black", se=F)+
+  xlab("Marsh:open water")+ylab("")+
+  theme(panel.border = element_rect(colour = "black", fill=NA,  linewidth=1))
+
+cowplot::plot_grid(mp1, mp2, mp3, mp4, ncol=2, rel_widths = c(0.55, 0.75, 0.55, 0.75))
+
+##Coinfection. - best fit is just length
+fullC<-glmer(coin~Length+scale(Salinity..ppt.)+scale(Petro.density)+scale(mudcrab.density)+scale(Marsh.water.ratio)+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+summary(fullC)
+MuMIn::dredge(fullC, "sd", extra = c("r.squaredGLMM", F = function(x)
+summary(x)$fstatistic[[1]]))  #marsh water, length, mudcrab, sal
+
+fullC1<-glmer(coin~Length+scale(Salinity..ppt.)+scale(mudcrab.density)+scale(Marsh.water.ratio)+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+summary(fullC1)
+r.squaredGLMM(fullC1)
+
+fullC2<-glmer(coin~Length+scale(Salinity..ppt.)+scale(Marsh.water.ratio)+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+summary(fullC2)
+
+fullC3<-glmer(coin~Length+scale(Salinity..ppt.)+scale(Petro.density)+scale(mudcrab.density)+scale(Marsh.water.ratio)+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+summary(fullC3)
+
+fullC4<-glmer(coin~Length+scale(Salinity..ppt.)+scale(Petro.density)+scale(mudcrab.density)+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+summary(fullC4)
+
+fullC5<-glmer(coin~Length+scale(Salinity..ppt.)+scale(mudcrab.density)+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+summary(fullC5)
+
+fullC6<-glmer(coin~Length+scale(Salinity..ppt.)+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+summary(fullC6)
+
+fullC7<-glmer(coin~Length+scale(Salinity..ppt.)+scale(Petro.density)+scale(Marsh.water.ratio)+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+summary(fullC7)
+
+fullC8<-glmer(coin~Length+scale(mudcrab.density)+scale(Marsh.water.ratio)+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+summary(fullC8)
+
+par(mfrow = c(2, 2))
+visreg(fullC1, scale="response", rug=2, points=list(cex=1.4, lwd=0.1, col="black", pch=21), partial=T, ylab="P(Co-infection)")
+par(mfrow = c(1, 1))
+
+
+cp1<-ggplot(fulldat, aes(x=Length, y=coin, color=Cluster))+
+  geom_point()+
+  scale_color_viridis_d() +
+   geom_smooth(
+    method="glm",
+    method.args=list(family="binomial"), color="black", se=F)+
+  xlab("Oyster height (mm)")+ylab("Co-infection")+
+  theme(panel.border = element_rect(colour = "black", fill=NA,  linewidth=1)) +
+  theme(legend.position = "none")
+
+cp2<-ggplot(fulldat, aes(x=Salinity..ppt., y=coin, color=Cluster))+
+  geom_point()+
+  scale_color_viridis_d() +
+   geom_smooth(
+    method="glm",
+    method.args=list(family="binomial"), color="black", se=F)+
+  xlab("Salinity")+ylab("")+
+  theme(panel.border = element_rect(colour = "black", fill=NA,  linewidth=1))
+
+cp3<-ggplot(fulldat, aes(x=mudcrab.density, y=coin, color=Cluster))+
+  geom_point()+
+  scale_color_viridis_d() +
+   geom_smooth(
+    method="glm",
+    method.args=list(family="binomial"), color="black", se=F)+
+  xlab("Mud crab density")+ylab("Co-infection")+
+  theme(panel.border = element_rect(colour = "black", fill=NA,  linewidth=1))+
+  theme(legend.position = "none")
+
+cp4<-ggplot(fulldat, aes(x=Marsh.water.ratio, y=coin, color=Cluster))+
+  geom_point()+
+  scale_color_viridis_d() +
+   geom_smooth(
+    method="glm",
+    method.args=list(family="binomial"), color="black", se=F)+
+  xlab("Marsh:open water")+ylab("")+
+  theme(panel.border = element_rect(colour = "black", fill=NA,  linewidth=1))
+
+cowplot::plot_grid(cp1, cp2, cp3, cp4, ncol=2, rel_widths = c(0.55, 0.75, 0.55, 0.75))
+
+
+
+
+#run full Dermo.in minus high correlations
+FullDI<-lmer(log(Dermo.g)~Temp...C.+Salinity..ppt.+scale(Petro.density)+scale(Total.oyster.density)+Marsh.water.ratio+Nearest.Inlet+(1|Site), REML=F, data=fulldatD, na.action=na.fail)
+r.squaredGLMM(FullDI)
+MuMIn::dredge(FullDI, "sd", extra = c("r.squaredGLMM", F = function(x)
+summary(x)$fstatistic[[1]])) #Marsh water, salinity and temp.
+
+FullDI1<-lmer(log(Dermo.g)~Temp...C.+Salinity..ppt.+Marsh.water.ratio+(1|Site), REML=F, data=fulldatD, na.action=na.fail)
+r.squaredGLMM(FullDI1)
+summary(FullDI1)
+
+FullDI2<-lmer(log(Dermo.g)~Temp...C.+Marsh.water.ratio+(1|Site), REML=F, data=fulldatD, na.action=na.fail)
+summary(FullDI2)
+
+FullDI3<-lmer(log(Dermo.g)~Temp...C.+scale(Petro.density)+Marsh.water.ratio+(1|Site), REML=F, data=fulldatD, na.action=na.fail)
+summary(FullDI3)
+
+FullDI4<-lmer(log(Dermo.g)~Temp...C.+Salinity..ppt.+scale(Petro.density)+Marsh.water.ratio+(1|Site), REML=F, data=fulldatD, na.action=na.fail)
+summary(FullDI4)
+
+FullDI5<-lmer(log(Dermo.g)~Temp...C.+scale(Petro.density)+Marsh.water.ratio+scale(Total.oyster.density)+(1|Site), REML=F, data=fulldatD, na.action=na.fail)
+summary(FullDI5)
+
+FullDI6<-lmer(log(Dermo.g)~Temp...C.+Marsh.water.ratio+scale(Total.oyster.density)+(1|Site), REML=F, data=fulldatD, na.action=na.fail)
+summary(FullDI6)
+
+
+FullDI7<-lmer(log(Dermo.g)~Temp...C.++Marsh.water.ratio+Salinity..ppt.+Nearest.Inlet+(1|Site), REML=F, data=fulldatD, na.action=na.fail)
+summary(FullDI7)
+
+FullDI8<-lmer(log(Dermo.g)~Temp...C.++Marsh.water.ratio+Salinity..ppt.+scale(Total.oyster.density)+(1|Site), REML=F, data=fulldatD, na.action=na.fail)
+summary(FullDI8)
+
+par(mfrow = c(1, 3))
+
+visreg(FullDI1, scale="response", points=list(cex=1.4, lwd=0.4, col="black", pch=21), partial=T, ylab="P(P. marinus intensity)")
+
+par(mfrow = c(1, 1))
+
+dip1<-ggplot(fulldat, aes(x=Length, y=log(Dermo.g+1), color=Cluster))+
+  geom_point()+
+  scale_color_viridis_d() +
+   geom_smooth(
+    method="glm",color="black", se=F)+
+  xlab("Oyster height (mm)")+ylab("Dermo abundance [Log(DNA/g)]")+
+  theme(panel.border = element_rect(colour = "black", fill=NA,  linewidth=1)) +
+  theme(legend.position = "none")
+
+
+dip2<-ggplot(fulldat, aes(x=Temp...C., y=log(Dermo.g+1), color=Cluster))+
+  geom_point()+
+  scale_color_viridis_d() +
+   geom_smooth(
+    method="glm",
+    color="black", se=F)+
+  xlab("Temperature (C)")+ylab("")+
+  theme(panel.border = element_rect(colour = "black", fill=NA,  linewidth=1))+
+  theme(legend.position = "none")
+
+dip3<-ggplot(fulldat, aes(x=Marsh.water.ratio, y=log(Dermo.g+1), color=Cluster))+
+  geom_point()+
+  scale_color_viridis_d() +
+   geom_smooth(
+    method="glm", color="black", se=F)+
+  xlab("Marsh:Water")+ylab("")+
+  theme(panel.border = element_rect(colour = "black", fill=NA,  linewidth=1))
+
+
+
+
+cowplot::plot_grid(dip1, dip2, dip3, ncol=3, rel_widths = c(0.66, 0.66, 1))
+
+
+#run full MSX.in minus high correlations
+FullMI<-lmer(log(MSX.g)~Length+Salinity..ppt.+ Temp...C. + scale(Rugosity) + scale(Total.oyster.density) + 
+    scale(Petro.density) + scale(mudcrab.density)+ Marsh.water.ratio+(1|Site), REML=F,  data=fulldatM, na.action=na.fail)
+
+MuMIn::dredge(FullMI, "sd", extra = c("r.squaredGLMM", F = function(x)
+summary(x)$fstatistic[[1]])) # Length. sal, temp, rugosity
+
+FullMI1<-lmer(log(MSX.g)~Length+Salinity..ppt.+  scale(Petro.density) + scale(mudcrab.density)+(1|Site), REML=F,  data=fulldatM, na.action=na.fail)
+summary(FullMI1)
+r.squaredGLMM(FullMI1)
+visreg(FullMI1)
+par(mfrow = c(2, 2))
+
+FullMI2<-lmer(log(MSX.g)~Length+Salinity..ppt.+  scale(Petro.density) +Temp...C.+ scale(mudcrab.density)+(1|Site), REML=F,  data=fulldatM, na.action=na.fail)
+summary(FullMI2)
+
+FullMI3<-lmer(log(MSX.g)~Length+Salinity..ppt.+  scale(Petro.density) +Temp...C.+ scale(mudcrab.density)+scale(Rugosity)+(1|Site), REML=F,  data=fulldatM, na.action=na.fail)
+summary(FullMI3)
+
+FullMI4<-lmer(log(MSX.g)~Length+Salinity..ppt.+  scale(Petro.density) + scale(mudcrab.density)+scale(Rugosity)+(1|Site), REML=F,  data=fulldatM, na.action=na.fail)
+summary(FullMI4)
+
+FullMI5<-lmer(log(MSX.g)~Length+Salinity..ppt.+ Marsh.water.ratio+ scale(Petro.density) + scale(mudcrab.density)+(1|Site), REML=F,  data=fulldatM, na.action=na.fail)
+summary(FullMI5)
+
+FullMI6<-lmer(log(MSX.g)~Length+Salinity..ppt.+ Marsh.water.ratio+ Temp...C.+ scale(Petro.density) + scale(mudcrab.density)+(1|Site), REML=F,  data=fulldatM, na.action=na.fail)
+summary(FullMI6)
+
+visreg(FullMI1, scale="response", points=list(cex=1.4, lwd=0.4, col="black", pch=21), partial=T, ylab="P(H. nelsoni intensity)")
+
+par(mfrow = c(1, 1))
+
+mip1<-ggplot(fulldat, aes(x=Length, y=log(MSX.g+1), color=Cluster))+
+  geom_point()+
+  scale_color_viridis_d() +
+   geom_smooth(
+    method="glm",color="black", se=F)+
+  xlab("Oyster height (mm)")+ylab("MSX abundance [Log(DNA/g)]")+
+  theme(panel.border = element_rect(colour = "black", fill=NA,  linewidth=1)) +
+  theme(legend.position = "none")
+
+mip2<-ggplot(fulldat, aes(x=Salinity..ppt., y=log(MSX.g+1), color=Cluster))+
+  geom_point()+
+  scale_color_viridis_d() +
+   geom_smooth(
+    method="glm", color="black", se=F)+
+  xlab("Salinity")+ylab("")+
+  theme(panel.border = element_rect(colour = "black", fill=NA,  linewidth=1))+
+  theme(legend.position = "none")
+
+mip3<-ggplot(fulldat, aes(x=Temp...C., y=log(MSX.g+1), color=Cluster))+
+  geom_point()+
+  scale_color_viridis_d() +
+   geom_smooth(
+    method="glm",
+    color="black", se=F)+
+  xlab("Temperature (C)")+ylab("")+
+  theme(panel.border = element_rect(colour = "black", fill=NA,  linewidth=1))
+
+
+
+cowplot::plot_grid(mip1, mip2, mip3, ncol=3, rel_widths = c(0.66, 0.66, 1))
+
+##worm 
+FullW<-glmer(worm~Length+Salinity..ppt.+scale(Rugosity)+Nearest.Inlet+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+summary(FullW)
+r.squaredGLMM(FullW)
+MuMIn::dredge(FullW, "sd", extra = c("r.squaredGLMM", F = function(x)
+summary(x)$fstatistic[[1]]))
+
+FullW1<-glmer(worm~Length+Salinity..ppt.+Nearest.Inlet+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+summary(FullW1)
+r.squaredGLMM(FullW1)
+
+FullW2<-glmer(worm~Length+Salinity..ppt.+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+summary(FullW2)
+
+FullW3<-glmer(worm~Length+Salinity..ppt.+Nearest.Inlet+scale(Rugosity)+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+summary(FullW3)
+
+FullW4<-glmer(worm~Length+Salinity..ppt.+scale(Rugosity)+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+summary(FullW4)
+
+FullW5<-glmer(worm~Length+scale(Rugosity)+Nearest.Inlet+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+summary(FullW5)
+
+FullW6<-glmer(worm~Length+Nearest.Inlet+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+summary(FullW6)
+
+FullW7<-glmer(worm~Length+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+summary(FullW7)
+
+FullW8<-glmer(worm~Length+scale(Rugosity)+(1|Site), family=binomial(link="logit"), data=fulldat, na.action=na.fail)
+summary(FullW8)
+
+
+
+par(mfrow = c(1, 3))
+
+visreg(FullW1, scale="response", rug=2, points=list(cex=1.4, lwd=0.1, col="black", pch=21), partial=T, ylab="P(Mud blister worm presence)")
+
+par(mfrow = c(1, 1))
+
+
+wp1<-ggplot(fulldat, aes(x=Length, y=worm, color=Cluster))+
+  geom_point()+
+  scale_color_viridis_d() +
+   geom_smooth(
+    method="glm",
+    method.args=list(family="binomial"), color="black", se=F)+
+  xlab("Oyster height (mm)")+ylab("Mud blister worm presence")+
+  theme(panel.border = element_rect(colour = "black", fill=NA,  linewidth=1)) +
+  theme(legend.position = "none")
+
+wp2<-ggplot(fulldat, aes(x=Salinity..ppt., y=worm, color=Cluster))+
+  geom_point()+
+  scale_color_viridis_d() +
+   geom_smooth(
+    method="glm",
+    method.args=list(family="binomial"), color="black", se=F)+
+  xlab("Salinity")+ylab("")+
+  theme(panel.border = element_rect(colour = "black", fill=NA,  linewidth=1))
+
+wp3<-ggplot(fulldat, aes(x=Rugosity, y=worm, color=Cluster))+
+  geom_point()+
+  scale_color_viridis_d() +
+   geom_smooth(
+    method="glm",
+    method.args=list(family="binomial"), color="black", se=F)+
+  xlab("Reef rugosity")+ylab("Mud blister worm presence")+
+  theme(panel.border = element_rect(colour = "black", fill=NA,  linewidth=1))+
+  theme(legend.position = "none")
+
+wp4<-ggplot(fulldat, aes(x=Nearest.Inlet, y=worm, color=Cluster))+
+  geom_point()+
+  scale_color_viridis_d() +
+   geom_smooth(
+    method="glm",
+    method.args=list(family="binomial"), color="black", se=F)+
+  xlab("Distance to nearest inlet (km)")+ylab("")+
+  theme(panel.border = element_rect(colour = "black", fill=NA,  linewidth=1))
+
+cowplot::plot_grid(wp1, wp2, wp3, wp4, ncol=2, rel_widths = c(0.55, 0.75, 0.55, 0.75))
+
+
+```
+
+
+
