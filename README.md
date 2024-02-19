@@ -22,17 +22,11 @@
    - ReefCharacteristics-2023-08-07.csv
    
 3. Figures
-   - Figure1.pdf
-   - Figure2.pdf
-   - Figure3.pdf
-   - SuppFig1.pdf
-   - SuppFig2.pdf
-   - SuppFig3.pdf
-   - SuppFig4.pdf
-   - SuppFig5.pdf
-   - SuppFig6.pdf
-   - SuppFig7.pdf
+   - Figure 1.pdf
+   - Figure 2.pdf
+   - Figure 3.pdf
+   - Figure 4.pdf
 
 4. Tables 
    - Table 1.pdf
-   - SI Table 1.pdf
+   
