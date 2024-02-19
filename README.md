@@ -12,7 +12,7 @@
 **Repository contains the following:**
 
 1. Code
-   - R markdown script with all code and analyses included in manuscript (2022-GAOysterParasite Models.Rmd)
+   - R markdown script with all code and analyses included in manuscript (2022-GAOysterParasite Models Update.Rmd)
    
 2. Data
    - CIGintesnityandprev2022.csv
