@@ -15,7 +15,7 @@
    - R markdown script with all code and analyses included in manuscript (2022-GAOysterParasite Models Update.Rmd)
    
 2. Data
-   - CIGintesnityandprev2022.csv
+   - CIGintensityandprev2022.csv
    - CIGOysterAllCombinedWideFormat.csv
    - DiseaseoysterMacros.csv
    - DNRyear&5year.csv
