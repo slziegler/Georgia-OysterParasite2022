@@ -1,6 +1,6 @@
 # Georgia-OysterParasite2022
 
-##### GitHub repository containing data and code accompanying the GA CIG 2022 Oyster parasite manuscript (Ziegler et al. in review)
+##### GitHub repository containing data and code accompanying the GA CIG 2022 Oyster parasite manuscript (Ziegler et al. 2024)
 
 ## Title: High parasite prevalence in an ecosystem engineer correlated with both local and landscape-level factors
 
